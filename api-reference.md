@@ -67,6 +67,7 @@ with GraphQL endpoint, GraphQL serviceURL and auth if needed
     * [.listPersistedQueries([options], [retryOptions])](#AEMHeadless+listPersistedQueries) ⇒ <code>Promise.&lt;any&gt;</code>
     * [.runPersistedQuery(path, [variables], [options], [retryOptions])](#AEMHeadless+runPersistedQuery) ⇒ <code>Promise.&lt;any&gt;</code>
     * [.runPaginatedQuery(model, fields, [config], [args], [options], [retryOptions])](#AEMHeadless+runPaginatedQuery)
+    * [.runModelQuery(model, fields, [config], [args], [options], [retryOptions])](#AEMHeadless+runModelQuery) ⇒ <code>Promise.&lt;any&gt;</code>
     * [.buildQuery(model, fields, [config], [args])](#AEMHeadless+buildQuery) ⇒ [<code>QueryBuilderResult</code>](#QueryBuilderResult)
 
 <a name="new_AEMHeadless_new"></a>
@@ -218,6 +219,41 @@ Returns a Promise that resolves with a GET request JSON data.
 Returns a Generator Function.
 
 **Kind**: instance method of [<code>AEMHeadless</code>](#AEMHeadless)  
+<table>
+  <thead>
+    <tr>
+      <th>Param</th><th>Type</th><th>Default</th><th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+<tr>
+    <td>model</td><td><code>string</code></td><td></td><td><p>contentFragment model name</p>
+</td>
+    </tr><tr>
+    <td>fields</td><td><code>string</code></td><td></td><td><p>The query string for item fields</p>
+</td>
+    </tr><tr>
+    <td>[config]</td><td><code><a href="#ModelConfig">ModelConfig</a></code></td><td><code>{}</code></td><td><p>Pagination config</p>
+</td>
+    </tr><tr>
+    <td>[args]</td><td><code><a href="#ModelArgs">ModelArgs</a></code></td><td><code>{}</code></td><td><p>Query arguments</p>
+</td>
+    </tr><tr>
+    <td>[options]</td><td><code>object</code></td><td><code>{}</code></td><td><p>additional POST request options</p>
+</td>
+    </tr><tr>
+    <td>[retryOptions]</td><td><code>object</code></td><td><code>{}</code></td><td><p>retry options for @adobe/aio-lib-core-networking</p>
+</td>
+    </tr>  </tbody>
+</table>
+
+<a name="AEMHeadless+runModelQuery"></a>
+
+### aemHeadless.runModelQuery(model, fields, [config], [args], [options], [retryOptions]) ⇒ <code>Promise.&lt;any&gt;</code>
+Returns a Promise that resolves with a filtered POST request JSON data.
+
+**Kind**: instance method of [<code>AEMHeadless</code>](#AEMHeadless)  
+**Returns**: <code>Promise.&lt;any&gt;</code> - - the response data wrapped inside a Promise  
 <table>
   <thead>
     <tr>

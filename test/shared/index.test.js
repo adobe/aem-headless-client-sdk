@@ -261,12 +261,12 @@ describe('runPaginatedQuery', () => {
   const mockRetryOptions = {}
 
   it('should throw an error if model is missing', async () => {
-    const gen = sdk.runPaginatedQuery(null, mockFields, mockConfig, mockArgs, mockOptions, mockRetryOptions)
+    const gen = await sdk.runPaginatedQuery(null, mockFields, mockConfig, mockArgs, mockOptions, mockRetryOptions)
     await expect(gen.next()).rejects.toThrow(ErrorCodes.INVALID_PARAM)
   })
 
   it('should throw an error if fields are missing', async () => {
-    const gen = sdk.runPaginatedQuery(mockModel, null, mockConfig, mockArgs, mockOptions, mockRetryOptions)
+    const gen = await sdk.runPaginatedQuery(mockModel, null, mockConfig, mockArgs, mockOptions, mockRetryOptions)
     await expect(gen.next()).rejects.toThrow(ErrorCodes.INVALID_PARAM)
   })
 
@@ -288,9 +288,150 @@ describe('runPaginatedQuery', () => {
       })
     })
 
-    const gen = sdk.runPaginatedQuery(mockModel, mockFields, mockConfig, mockArgs, mockOptions, mockRetryOptions)
+    const gen = await sdk.runPaginatedQuery(mockModel, mockFields, mockConfig, mockArgs, mockOptions, mockRetryOptions)
+    const { value } = await gen.next()
+
+    expect(value.data).toEqual([mockData])
+  })
+
+  it('should yield done true and value false, at the last iteration', async () => {
+    const mockData = { id: '1', name: 'foo' }
+    fetch.resetMocks()
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          mockModelPaginated: {
+            edges: [
+              { node: mockData }
+            ],
+            pageInfo: {
+              hasNextPage: false
+            }
+          }
+        }
+      })
+    })
+
+    const gen = await sdk.runPaginatedQuery(mockModel, mockFields, mockConfig, mockArgs, mockOptions, mockRetryOptions)
     const result = await gen.next()
 
-    expect(result).toEqual({ done: false, value: [mockData] })
+    expect(result.done).toBeFalsy()
+    expect(result.value.data).toEqual([mockData])
+
+    const { done, value } = await gen.next()
+
+    expect(done).toBeTruthy()
+    expect(value).toBeFalsy()
+  })
+
+  it('should yield only first item - cursor query', async () => {
+    const mockData = [
+      { id: '1', name: 'foo' },
+      { id: '2', name: 'bar' }
+    ]
+    fetch.resetMocks()
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          mockModelPaginated: {
+            edges: [
+              { node: mockData[0] }
+            ],
+            pageInfo: {
+              hasNextPage: true
+            }
+          }
+        }
+      })
+    })
+
+    const gen = await sdk.runPaginatedQuery(mockModel, mockFields, mockConfig, { first: 1 }, mockOptions, mockRetryOptions)
+    const result = await gen.next()
+
+    expect(result).toEqual({ done: false, value: { data: [mockData[0]], hasNext: true } })
+  })
+
+  it('should yield only first item - offset query', async () => {
+    const mockData = [
+      { id: '1', name: 'foo' },
+      { id: '2', name: 'bar' }
+    ]
+    fetch.resetMocks()
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          mockModelList: {
+            items: [
+              mockData[0]
+            ]
+          }
+        }
+      })
+    })
+
+    const gen = await sdk.runPaginatedQuery('mockModel', mockFields, { useLimitOffset: true }, { limit: 1 }, mockOptions, mockRetryOptions)
+    const { value } = await gen.next()
+
+    expect(value.data).toEqual([mockData[0]])
+  })
+
+  it('should yield item - path query', async () => {
+    const mockData = { id: '1', name: 'foo' }
+    fetch.resetMocks()
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          mockModelByPath: {
+            item: mockData
+          }
+        }
+      })
+    })
+
+    const gen = await sdk.runPaginatedQuery(mockModel, mockFields, {}, { _path: 'path' }, mockOptions, mockRetryOptions)
+    const { value } = await gen.next()
+
+    expect(value.data).toEqual(mockData)
+  })
+
+  it('should update pagingArgs', async () => {
+    const mockData = { id: '1', name: 'foo' }
+    fetch.resetMocks()
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          mockModel2Paginated: {
+            edges: [
+              { node: mockData },
+              { node: mockData }
+            ],
+            pageInfo: {
+              hasNextPage: true
+            }
+          }
+        }
+      })
+    })
+
+    const gen = await sdk.runPaginatedQuery('mockModel2', mockFields, { pageSize: 1 }, { limit: 1 }, mockOptions, mockRetryOptions)
+    const result = await gen.next()
+
+    expect(result.done).toBeFalsy()
+    expect(result.value.data).toEqual([mockData, mockData])
+
+    const { done, value } = await gen.next()
+
+    expect(done).toBeFalsy()
+    expect(value.data).toEqual([mockData, mockData])
   })
 })

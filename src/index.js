@@ -148,7 +148,6 @@ class AEMHeadless {
     let hasNext = true
     let after = args.after || ''
     const limit = args.limit
-    const size = args.first || limit
     let pagingArgs = args
     while (hasNext) {
       const offset = pagingArgs.offset || 0
@@ -157,27 +156,55 @@ class AEMHeadless {
       }
 
       isInitial = false
-
-      const { query, type } = this.buildQuery(model, fields, config, pagingArgs)
-      const { data } = await this.runQuery(query, options, retryOptions)
-
-      let filteredData = {}
-      try {
-        filteredData = this.__filterData(model, type, data, size)
-      } catch (e) {
-        throw new API_ERROR({
-          sdkDetails: {
-            serviceURL: this.serviceURL
-          },
-          messageValues: `Error while filtering response data. ${e.message}`
-        })
-      }
+      const filteredData = await this.runModelQuery(model, fields, config, pagingArgs, options, retryOptions)
 
       hasNext = filteredData.hasNext
       after = filteredData.endCursor
 
-      yield filteredData.data
+      yield {
+        data: filteredData.data,
+        hasNext
+      }
     }
+  }
+
+  /**
+   * Returns a Promise that resolves with a filtered POST request JSON data.
+   *
+   * @param {string} model - contentFragment model name
+   * @param {string} fields - The query string for item fields
+   * @param {ModelConfig} [config={}] - Pagination config
+   * @param {ModelArgs} [args={}] - Query arguments
+   * @param {object} [options={}] - additional POST request options
+   * @param {object} [retryOptions={}] - retry options for @adobe/aio-lib-core-networking
+   * @returns {Promise<any>} - the response data wrapped inside a Promise
+   */
+  async runModelQuery (model, fields, config, args, options, retryOptions) {
+    if (!model || !fields) {
+      throw new INVALID_PARAM({
+        sdkDetails: {
+          serviceURL: this.serviceURL
+        },
+        messageValues: 'Required param missing: @param {string} fields - query string for item fields'
+      })
+    }
+
+    const size = args.first || args.limit
+    const { query, type } = this.buildQuery(model, fields, config, args)
+    const { data } = await this.runQuery(query, options, retryOptions)
+    let filteredData = {}
+    try {
+      filteredData = this.__filterData(model, type, data, size)
+    } catch (e) {
+      throw new API_ERROR({
+        sdkDetails: {
+          serviceURL: this.serviceURL
+        },
+        messageValues: `Error while filtering response data. ${e.message}`
+      })
+    }
+
+    return filteredData
   }
 
   /**
